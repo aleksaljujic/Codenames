@@ -1,0 +1,478 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0e1013;
+  --panel: #171a20;
+  --line: #2a2f39;
+  --line-hover: #3a4150;
+  --text: #eae7e0;
+  --muted: #969ba6;
+  --parch: #efe9db;
+  --parch-fg: #1f242c;
+  --parch-br: #cbbd9c;
+
+  /* card role palette — tuned for high-contrast phone photos */
+  --red-bg: #d61f3c;
+  --red-fg: #ffffff;
+  --red-br: #7c0f20;
+  --red-soft: #ff6b81;
+
+  --blue-bg: #1668d8;
+  --blue-fg: #ffffff;
+  --blue-br: #0b3a7a;
+  --blue-soft: #7fb3ff;
+
+  --neutral-bg: #d9c9a3;
+  --neutral-fg: #221c11;
+  --neutral-br: #a08a5f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rubik', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------------- App shell ---------------- */
+
+.app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: clamp(8px, 1.6vh, 16px);
+  gap: clamp(8px, 1.4vh, 14px);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.4vw, 14px);
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.startinfo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.split {
+  font-weight: 800;
+  font-size: clamp(1.2rem, 3vh, 2rem);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
+}
+.split b.red {
+  color: var(--red-soft);
+}
+.split b.blue {
+  color: var(--blue-soft);
+}
+.split .dash {
+  color: var(--muted);
+}
+
+.seedtag {
+  color: var(--muted);
+  font-size: clamp(0.78rem, 1.8vh, 1rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- Pills ---------------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: clamp(1rem, 2.6vh, 1.6rem);
+  border: 2px solid transparent;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.pill.red {
+  background: rgba(214, 31, 60, 0.16);
+  color: var(--red-soft);
+  border-color: var(--red-bg);
+}
+.pill.blue {
+  background: rgba(22, 104, 216, 0.16);
+  color: var(--blue-soft);
+  border-color: var(--blue-bg);
+}
+
+/* ---------------- Buttons ---------------- */
+
+.btn {
+  font-family: inherit;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 10px 18px;
+  border: 2px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: clamp(0.95rem, 2.2vh, 1.15rem);
+  transition:
+    border-color 0.15s ease,
+    transform 0.05s ease;
+}
+.btn:hover {
+  border-color: var(--line-hover);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn-primary {
+  background: var(--text);
+  color: #111;
+  border-color: var(--text);
+}
+.btn.big {
+  padding: 14px 28px;
+  font-size: clamp(1.1rem, 2.6vh, 1.35rem);
+  border-radius: 14px;
+}
+
+/* ---------------- Segmented script toggle ---------------- */
+
+.seg {
+  display: inline-flex;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.seg button {
+  background: var(--panel);
+  color: var(--muted);
+  border: 0;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 1rem;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.seg button.active {
+  background: var(--text);
+  color: #111;
+}
+.seg-big button {
+  padding: 12px 26px;
+  font-size: 1.15rem;
+}
+
+/* ---------------- Board sizing (largest square that fits) ---------------- */
+
+.board-area {
+  flex: 1;
+  min-height: 0;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.board {
+  /* Cards are rectangles (wider than tall) so long words fit on one line.
+     Board keeps this aspect ratio and grows to the largest size that fits. */
+  --card-ar: 1.5;
+  aspect-ratio: var(--card-ar);
+  width: min(100cqw, calc(100cqh * var(--card-ar)));
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: clamp(4px, 1.2cqmin, 12px);
+}
+
+/* ---------------- Card role colors (shared) ---------------- */
+
+.role-red {
+  --card-bg: var(--red-bg);
+  --card-fg: var(--red-fg);
+  --card-br: var(--red-br);
+}
+.role-blue {
+  --card-bg: var(--blue-bg);
+  --card-fg: var(--blue-fg);
+  --card-br: var(--blue-br);
+}
+.role-neutral {
+  --card-bg: var(--neutral-bg);
+  --card-fg: var(--neutral-fg);
+  --card-br: var(--neutral-br);
+}
+.role-assassin {
+  --card-bg: #0b0b0d;
+  --card-fg: #ffffff;
+  --card-br: #e0223f;
+}
+
+.word {
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.02;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.skull {
+  position: absolute;
+  top: 5%;
+  left: 7%;
+  font-size: clamp(0.7rem, 3.2cqmin, 1.5rem);
+  line-height: 1;
+  opacity: 0.95;
+}
+
+/* ---------------- Spymaster card (static, colored) ---------------- */
+
+.spycard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  padding: clamp(2px, 1.5cqmin, 10px);
+  border-radius: clamp(6px, 1.4cqmin, 14px);
+  background: var(--card-bg);
+  color: var(--card-fg);
+  border: clamp(3px, 1cqmin, 6px) solid var(--card-br);
+  font-size: clamp(0.6rem, 4.3cqmin, 2.1rem);
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+.spycard.role-assassin {
+  box-shadow:
+    0 0 0 3px #0b0b0d,
+    0 0 0 6px #e0223f,
+    inset 0 0 22px rgba(224, 34, 63, 0.4);
+}
+
+/* ---------------- Board card (flip) ---------------- */
+
+.card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  perspective: 900px;
+  font-family: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+.card:disabled {
+  cursor: default;
+}
+.card.is-revealed {
+  transform: scale(0.955);
+  opacity: 0.9;
+}
+
+.card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.42s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.card.is-revealed .card-inner {
+  transform: rotateY(180deg);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: clamp(6px, 1.4cqmin, 14px);
+  padding: clamp(2px, 1.5cqmin, 10px);
+  font-size: clamp(0.6rem, 4.3cqmin, 2.1rem);
+  overflow: hidden;
+}
+.face-front {
+  background: var(--parch);
+  color: var(--parch-fg);
+  border: 2px solid var(--parch-br);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+.face-back {
+  transform: rotateY(180deg);
+  background: var(--card-bg);
+  color: var(--card-fg);
+  border: clamp(3px, 1cqmin, 6px) solid var(--card-br);
+}
+.card.role-assassin .face-back {
+  box-shadow: inset 0 0 22px rgba(224, 34, 63, 0.45);
+}
+
+/* ---------------- Home ---------------- */
+
+.home {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 4vh, 34px);
+  padding: 24px;
+  text-align: center;
+}
+.title h1 {
+  font-size: clamp(2.6rem, 9vh, 6rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 0.95;
+}
+.tred {
+  color: var(--red-soft);
+}
+.tblue {
+  color: var(--blue-soft);
+}
+.sub {
+  color: var(--muted);
+  margin: 10px 0 0;
+  font-size: clamp(1rem, 2.4vh, 1.3rem);
+}
+.err {
+  color: var(--red-soft);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.field label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+.field input {
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1.1rem;
+  text-align: center;
+  width: min(340px, 82vw);
+  outline: none;
+}
+.field input:focus {
+  border-color: var(--line-hover);
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 0.9em;
+}
+
+/* ---------------- Game-over / win overlay ---------------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 4vh, 30px);
+  text-align: center;
+  padding: 24px;
+  animation: fade 0.25s ease;
+}
+.overlay.win-red {
+  background: rgba(214, 31, 60, 0.94);
+  color: #fff;
+}
+.overlay.win-blue {
+  background: rgba(22, 104, 216, 0.94);
+  color: #fff;
+}
+.overlay.assassin {
+  background: rgba(6, 6, 8, 0.97);
+  color: #fff;
+}
+.overlay h1 {
+  font-size: clamp(2.6rem, 12vh, 8rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin: 0;
+  line-height: 0.95;
+}
+.overlay.assassin h1 {
+  color: #ff5064;
+}
+.osub {
+  font-size: clamp(1.05rem, 3vh, 1.6rem);
+  margin: 0;
+  opacity: 0.92;
+  max-width: 32ch;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
