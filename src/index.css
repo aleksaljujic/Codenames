@@ -240,56 +240,81 @@ body {
 
 .card-text {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   height: 100%;
 }
 
-/* main word */
-.word-main {
+/* the two opposite-facing copies, stacked on top of each other */
+.wlayer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.wlayer.down {
+  transform: rotate(180deg);
+}
+
+.wtext {
   text-transform: uppercase;
-  font-weight: 800;
-  letter-spacing: 0.01em;
   line-height: 1;
+  letter-spacing: 0.01em;
+  text-align: center;
   word-break: break-word;
   hyphens: auto;
-  text-align: center;
-  font-size: clamp(0.5rem, 3.2cqmin, 1.55rem);
+  width: 100%;
+  transition:
+    font-size 0.3s ease,
+    opacity 0.3s ease;
 }
 
-/* white label box (players' parchment card) */
-.word-box {
-  display: flex;
-  align-items: center;
+/* default emphasis: "up" is primary (big, centered), "down" is secondary */
+.wlayer.up {
   justify-content: center;
+}
+.wlayer.up .wtext {
+  font-size: clamp(0.5rem, 3.2cqmin, 1.55rem);
+  font-weight: 800;
+  opacity: 1;
+}
+.wlayer.down {
+  justify-content: flex-start;
+}
+.wlayer.down .wtext {
+  font-size: clamp(0.36rem, 1.9cqmin, 0.82rem);
+  font-weight: 700;
+  opacity: 0.4;
+}
+
+/* rotated spymaster map: swap — "down" becomes primary, "up" secondary */
+.rot180 .wlayer.up {
+  justify-content: flex-start;
+}
+.rot180 .wlayer.up .wtext {
+  font-size: clamp(0.36rem, 1.9cqmin, 0.82rem);
+  font-weight: 700;
+  opacity: 0.4;
+}
+.rot180 .wlayer.down {
+  justify-content: center;
+}
+.rot180 .wlayer.down .wtext {
+  font-size: clamp(0.5rem, 3.2cqmin, 1.55rem);
+  font-weight: 800;
+  opacity: 1;
+}
+
+/* white label box around the primary word on the players' parchment card */
+.face-front .wlayer.up .wtext {
+  width: auto;
   max-width: 92%;
-  padding: clamp(3px, 1.6cqmin, 10px) clamp(5px, 2.2cqmin, 14px);
   background: #fdfdfb;
   color: #16191f;
+  padding: clamp(3px, 1.6cqmin, 10px) clamp(5px, 2.2cqmin, 14px);
   border-radius: clamp(3px, 1.2cqmin, 9px);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.09);
-}
-
-/* small faded upside-down copy for the far side of the table */
-.word-mini {
-  position: absolute;
-  top: 6%;
-  left: 0;
-  right: 0;
-  transform: rotate(180deg);
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1;
-  text-align: center;
-  font-size: clamp(0.36rem, 1.9cqmin, 0.82rem);
-  opacity: 0.4;
-  pointer-events: none;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .skull {

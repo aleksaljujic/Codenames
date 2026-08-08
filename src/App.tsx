@@ -381,9 +381,10 @@ function CodeGate({ seed, onUnlock }: { seed: string; onUnlock: () => void }) {
 /* ---------------- Spymaster map ---------------- */
 
 function SpyMap({ game, disp }: { game: Game; disp: (w: string) => string }) {
+  const [rotated, setRotated] = useState(false);
   const other: Team = game.startingTeam === 'red' ? 'blue' : 'red';
   return (
-    <div className="app">
+    <div className={`app ${rotated ? 'rot180' : ''}`}>
       <header className="topbar">
         <div className="startinfo">
           <span className={`pill ${game.startingTeam}`}>{teamName(game.startingTeam)} POČINJU</span>
@@ -393,6 +394,13 @@ function SpyMap({ game, disp }: { game: Game; disp: (w: string) => string }) {
             <b className={other}>8</b>
           </span>
         </div>
+        <div className="spacer" />
+        <button
+          className={`btn ${rotated ? 'btn-primary' : ''}`}
+          onClick={() => setRotated((r) => !r)}
+        >
+          ⟳ Okreni 180°
+        </button>
       </header>
 
       <div className="board-area">
@@ -512,20 +520,19 @@ function BoardQrOverlay({ seed, onClose }: { seed: string; onClose: () => void }
   );
 }
 
-/** Like real Codenames cards: the main word big (boxed on the parchment face),
- *  plus a small faded upside-down copy at the top for the players across the
- *  table. The mirrored copy is deliberately tiny so it doesn't distract. */
-function CardWord({ text, boxed }: { text: string; boxed?: boolean }) {
+/** Two copies of the word facing opposite sides of the table, like real
+ *  Codenames cards. One side is primary (big, centered), the other secondary
+ *  (small, faded, at the top). The spymaster "Okreni 180°" swaps which side is
+ *  primary — so the big readable word turns to face the other seat. */
+function CardWord({ text }: { text: string }) {
   return (
     <span className="card-text">
-      <span className="word-mini">{text}</span>
-      {boxed ? (
-        <span className="word-box">
-          <span className="word-main">{text}</span>
-        </span>
-      ) : (
-        <span className="word-main">{text}</span>
-      )}
+      <span className="wlayer up">
+        <span className="wtext">{text}</span>
+      </span>
+      <span className="wlayer down">
+        <span className="wtext">{text}</span>
+      </span>
     </span>
   );
 }
@@ -550,7 +557,7 @@ function BoardCard({
     >
       <div className="card-inner">
         <div className="face face-front">
-          <CardWord text={word} boxed />
+          <CardWord text={word} />
         </div>
         <div className="face face-back">
           {role === 'assassin' && <span className="skull">☠</span>}
