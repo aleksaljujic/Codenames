@@ -238,13 +238,58 @@ body {
   --card-br: #e0223f;
 }
 
-.word {
+.card-text {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* main word */
+.word-main {
   text-transform: uppercase;
   font-weight: 800;
   letter-spacing: 0.01em;
-  line-height: 1.02;
+  line-height: 1;
   word-break: break-word;
   hyphens: auto;
+  text-align: center;
+  font-size: clamp(0.5rem, 3.2cqmin, 1.55rem);
+}
+
+/* white label box (players' parchment card) */
+.word-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 92%;
+  padding: clamp(3px, 1.6cqmin, 10px) clamp(5px, 2.2cqmin, 14px);
+  background: #fdfdfb;
+  color: #16191f;
+  border-radius: clamp(3px, 1.2cqmin, 9px);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.09);
+}
+
+/* small faded upside-down copy for the far side of the table */
+.word-mini {
+  position: absolute;
+  top: 6%;
+  left: 0;
+  right: 0;
+  transform: rotate(180deg);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-align: center;
+  font-size: clamp(0.36rem, 1.9cqmin, 0.82rem);
+  opacity: 0.4;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .skull {
@@ -271,7 +316,7 @@ body {
   background: var(--card-bg);
   color: var(--card-fg);
   border: clamp(3px, 1cqmin, 6px) solid var(--card-br);
-  font-size: clamp(0.6rem, 4.3cqmin, 2.1rem);
+  font-size: clamp(0.5rem, 3.5cqmin, 1.7rem);
   user-select: none;
   -webkit-user-select: none;
   overflow: hidden;
@@ -333,11 +378,13 @@ body {
   -webkit-backface-visibility: hidden;
   border-radius: clamp(6px, 1.4cqmin, 14px);
   padding: clamp(2px, 1.5cqmin, 10px);
-  font-size: clamp(0.6rem, 4.3cqmin, 2.1rem);
+  font-size: clamp(0.5rem, 3.5cqmin, 1.7rem);
   overflow: hidden;
 }
 .face-front {
-  background: var(--parch);
+  background:
+    repeating-linear-gradient(-45deg, rgba(120, 100, 60, 0.06) 0 6px, transparent 6px 15px),
+    var(--parch);
   color: var(--parch-fg);
   border: 2px solid var(--parch-br);
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);

@@ -400,7 +400,7 @@ function SpyMap({ game, disp }: { game: Game; disp: (w: string) => string }) {
           {game.cards.map((c, i) => (
             <div key={i} className={`spycard role-${c.role}`}>
               {c.role === 'assassin' && <span className="skull">☠</span>}
-              <span className="word">{disp(c.word)}</span>
+              <CardWord text={disp(c.word)} />
             </div>
           ))}
         </div>
@@ -512,6 +512,24 @@ function BoardQrOverlay({ seed, onClose }: { seed: string; onClose: () => void }
   );
 }
 
+/** Like real Codenames cards: the main word big (boxed on the parchment face),
+ *  plus a small faded upside-down copy at the top for the players across the
+ *  table. The mirrored copy is deliberately tiny so it doesn't distract. */
+function CardWord({ text, boxed }: { text: string; boxed?: boolean }) {
+  return (
+    <span className="card-text">
+      <span className="word-mini">{text}</span>
+      {boxed ? (
+        <span className="word-box">
+          <span className="word-main">{text}</span>
+        </span>
+      ) : (
+        <span className="word-main">{text}</span>
+      )}
+    </span>
+  );
+}
+
 function BoardCard({
   role,
   word,
@@ -532,11 +550,11 @@ function BoardCard({
     >
       <div className="card-inner">
         <div className="face face-front">
-          <span className="word">{word}</span>
+          <CardWord text={word} boxed />
         </div>
         <div className="face face-back">
           {role === 'assassin' && <span className="skull">☠</span>}
-          <span className="word">{word}</span>
+          <CardWord text={word} />
         </div>
       </div>
     </button>
