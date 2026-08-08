@@ -476,3 +476,84 @@ code {
     opacity: 1;
   }
 }
+
+/* ---------------- Share / QR overlay ---------------- */
+
+.share-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(6, 7, 9, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fade 0.2s ease;
+}
+
+.share-card {
+  background: #fff;
+  color: #15181d;
+  border-radius: 20px;
+  padding: clamp(20px, 4vh, 34px);
+  width: min(420px, 92vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.share-card h2 {
+  margin: 0;
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
+  font-weight: 800;
+}
+
+.qr-wrap {
+  background: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  line-height: 0;
+  box-shadow: 0 0 0 2px #e5e7eb;
+}
+
+.roomcode {
+  font-weight: 800;
+  font-size: clamp(1.15rem, 4.5vw, 1.7rem);
+  letter-spacing: 0.01em;
+  word-break: break-all;
+}
+.roomcode small {
+  display: block;
+  color: #6b7280;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.share-note {
+  color: #6b7280;
+  font-size: 0.85rem;
+  margin: 0;
+  max-width: 34ch;
+}
+
+.share-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.btn-dark {
+  background: #15181d;
+  color: #fff;
+  border-color: #15181d;
+}
+.share-card .btn {
+  color: #15181d;
+}
+.share-card .btn.btn-dark {
+  color: #fff;
+}

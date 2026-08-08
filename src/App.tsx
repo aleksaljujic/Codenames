@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { WORDS } from './data/words';
 import { buildGame, toCyrillic, type Game, type Role, type Team } from './lib';
 
@@ -9,20 +10,37 @@ type Outcome = 'red-win' | 'blue-win' | 'assassin' | null;
 const randomSeed = () => Math.floor(Math.random() * 0xffffffff);
 const teamName = (t: Team) => (t === 'red' ? 'CRVENI' : 'PLAVI');
 
-function nav(v: View) {
-  window.location.hash = v === 'home' ? '#/' : `#/${v}`;
+/* ---------------- URL <-> game (the seed is the room code) ---------------- */
+
+function parseHash(hash: string): { view: View; seed: string | null } {
+  const h = hash.replace(/^#/, ''); // e.g. "/spy?seed=abc"
+  const [path, query] = h.split('?');
+  const seed = new URLSearchParams(query || '').get('seed');
+  const view: View = path.startsWith('/spy') ? 'spy' : path.startsWith('/board') ? 'board' : 'home';
+  return { view, seed: seed && seed.length ? seed : null };
 }
 
-function useHashView(): View {
+function gameHash(view: Exclude<View, 'home'>, seed: string): string {
+  return `#/${view}?${new URLSearchParams({ seed }).toString()}`;
+}
+
+function nav(view: View, seed?: string) {
+  window.location.hash = view === 'home' || !seed ? '#/' : gameHash(view, seed);
+}
+
+/** Absolute URL that opens the spymaster view for a given seed on any device. */
+function spyLink(seed: string): string {
+  return window.location.origin + window.location.pathname + gameHash('spy', seed);
+}
+
+function useHash() {
   const [hash, setHash] = useState(() => window.location.hash);
   useEffect(() => {
     const on = () => setHash(window.location.hash);
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
-  if (hash.startsWith('#/spy')) return 'spy';
-  if (hash.startsWith('#/board')) return 'board';
-  return 'home';
+  return useMemo(() => parseHash(hash), [hash]);
 }
 
 function useWakeLock(active: boolean) {
@@ -56,26 +74,27 @@ function useWakeLock(active: boolean) {
 /* ---------------- App ---------------- */
 
 export default function App() {
-  const view = useHashView();
+  const { view, seed } = useHash();
   const [script, setScript] = useState<Script>('lat');
-  const [game, setGame] = useState<Game | null>(null);
-  const [revealed, setRevealed] = useState<boolean[]>([]);
+
+  // The board is fully derived from the seed in the URL — so a scanned link
+  // reproduces the exact same board on a phone, with no backend.
+  const game = useMemo<Game | null>(() => (seed ? buildGame(seed) : null), [seed]);
+
+  // Reveals are per-device (Option A: phones view the static map). Reset on new seed.
+  const [revealed, setRevealed] = useState<boolean[]>(() => Array(25).fill(false));
+  useEffect(() => {
+    setRevealed(Array(25).fill(false));
+  }, [seed]);
 
   useWakeLock(game !== null && view !== 'home');
 
   if (WORDS.length < 25) return <ErrorScreen count={WORDS.length} />;
 
-  const startNew = (seedInput: string) => {
-    const label = seedInput.trim() === '' ? String(randomSeed()) : seedInput.trim();
-    setGame(buildGame(label));
-    setRevealed(Array(25).fill(false));
-    nav('spy');
-  };
-
   const disp = (w: string) => (script === 'cyr' ? toCyrillic(w) : w);
 
   if (view === 'home' || !game) {
-    return <Home script={script} setScript={setScript} onStart={startNew} />;
+    return <Home script={script} setScript={setScript} onStart={(s) => nav('spy', s)} />;
   }
 
   if (view === 'spy') {
@@ -105,6 +124,7 @@ function Home({
   onStart: (seed: string) => void;
 }) {
   const [seed, setSeed] = useState('');
+  const start = () => onStart(seed.trim() === '' ? String(randomSeed()) : seed.trim());
   return (
     <div className="home">
       <div className="title">
@@ -117,21 +137,21 @@ function Home({
       <ScriptToggle script={script} setScript={setScript} big />
 
       <div className="field">
-        <label>Seed (opciono)</label>
+        <label>Kod sobe / seed (opciono)</label>
         <input
           value={seed}
           onChange={(e) => setSeed(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') onStart(seed);
+            if (e.key === 'Enter') start();
           }}
           placeholder="npr. petak-veče ili 12345"
           autoComplete="off"
           spellCheck={false}
         />
-        <span className="hint">Isti seed uvek daje istu tablu.</span>
+        <span className="hint">Isti kod uvek daje istu tablu. Ostavi prazno za nasumičnu.</span>
       </div>
 
-      <button className="btn btn-primary big" onClick={() => onStart(seed)}>
+      <button className="btn btn-primary big" onClick={start}>
         Nova igra →
       </button>
     </div>
@@ -151,6 +171,7 @@ function SpyView({
   script: Script;
   setScript: (s: Script) => void;
 }) {
+  const [showShare, setShowShare] = useState(false);
   const other: Team = game.startingTeam === 'red' ? 'blue' : 'red';
   return (
     <div className="app">
@@ -165,8 +186,10 @@ function SpyView({
         </div>
         <div className="spacer" />
         <ScriptToggle script={script} setScript={setScript} />
-        <span className="seedtag">seed: {game.seedLabel}</span>
-        <button className="btn btn-primary" onClick={() => nav('board')}>
+        <button className="btn" onClick={() => setShowShare(true)}>
+          ⧉ Podeli
+        </button>
+        <button className="btn btn-primary" onClick={() => nav('board', game.seedLabel)}>
           Kreni →
         </button>
       </header>
@@ -179,6 +202,47 @@ function SpyView({
               <span className="word">{disp(c.word)}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {showShare && <ShareOverlay seed={game.seedLabel} onClose={() => setShowShare(false)} />}
+    </div>
+  );
+}
+
+function ShareOverlay({ seed, onClose }: { seed: string; onClose: () => void }) {
+  const link = spyLink(seed);
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — user can still scan the QR */
+    }
+  };
+  return (
+    <div className="share-backdrop" onClick={onClose}>
+      <div className="share-card" onClick={(e) => e.stopPropagation()}>
+        <h2>Špijuni skeniraju kod</h2>
+        <div className="qr-wrap">
+          <QRCodeSVG value={link} size={232} level="M" marginSize={1} />
+        </div>
+        <div className="roomcode">
+          <small>Kod sobe</small>
+          {seed}
+        </div>
+        <p className="share-note">
+          Otvara istu mapu na svakom telefonu. Isti kod = ista tabla.
+        </p>
+        <div className="share-actions">
+          <button className="btn btn-dark" onClick={copy}>
+            {copied ? '✓ Kopirano' : 'Kopiraj link'}
+          </button>
+          <button className="btn" onClick={onClose}>
+            Zatvori
+          </button>
         </div>
       </div>
     </div>
@@ -247,7 +311,7 @@ function BoardView({
         <span className="pill red">CRVENI {Math.max(0, redRem)}</span>
         <span className="pill blue">PLAVI {Math.max(0, blueRem)}</span>
         <div className="spacer" />
-        <button className="btn" onClick={() => nav('spy')}>
+        <button className="btn" onClick={() => nav('spy', game.seedLabel)}>
           Prikaži mapu
         </button>
         <button className="btn" onClick={onNew}>
