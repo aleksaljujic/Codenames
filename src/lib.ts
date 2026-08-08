@@ -70,6 +70,17 @@ export function buildGame(label: string): Game {
   return { seedLabel: label, seed, startingTeam, cards };
 }
 
+/**
+ * Short 4-digit spymaster code derived from the seed. Deterministic, so any
+ * device holding the seed can verify it offline (no server). This gates the
+ * colored map against *accidental* access — it is not a cryptographic secret,
+ * since the board device inherently holds the roles.
+ */
+export function spyCode(seed: string): string {
+  const n = seedToNumber('code:' + seed);
+  return String(1000 + (n % 9000));
+}
+
 /* ---------- Latin -> Cyrillic transliteration ---------- */
 
 const DIGRAPHS: Record<string, string> = {

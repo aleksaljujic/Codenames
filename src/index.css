@@ -64,6 +64,9 @@ body {
   align-items: center;
   gap: clamp(8px, 1.4vw, 14px);
   flex-wrap: wrap;
+  /* leave room for the fixed hamburger button in the corner */
+  padding-left: 52px;
+  min-height: 44px;
 }
 
 .spacer {
@@ -556,4 +559,178 @@ code {
 }
 .share-card .btn.btn-dark {
   color: #fff;
+}
+
+/* ---------------- Room / code gate ---------------- */
+
+.room {
+  gap: clamp(14px, 3vh, 26px);
+}
+.roomtitle {
+  font-size: clamp(2rem, 6vh, 3.4rem);
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.codebox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.codebox small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.bigcode {
+  font-weight: 800;
+  font-size: clamp(2.4rem, 11vw, 4rem);
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 6px 26px 6px 32px;
+}
+
+.codeinput {
+  font-family: inherit;
+  font-size: clamp(2rem, 9vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: 0.4em;
+  text-align: center;
+  width: min(260px, 74vw);
+  padding: 12px 10px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  color: var(--text);
+  outline: none;
+}
+.codeinput:focus {
+  border-color: var(--line-hover);
+}
+.gate-err {
+  color: var(--red-soft);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* ---------------- Side menu (drawer) ---------------- */
+
+.menu-btn {
+  position: fixed;
+  top: clamp(8px, 1.6vh, 16px);
+  left: clamp(8px, 1.6vw, 16px);
+  z-index: 40;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  color: var(--text);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.menu-btn:hover {
+  border-color: var(--line-hover);
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(6, 7, 9, 0.6);
+  animation: fade 0.15s ease;
+}
+.drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100dvh;
+  width: min(300px, 82vw);
+  background: #14171c;
+  border-right: 2px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  overflow-y: auto;
+  animation: slidein 0.2s ease;
+}
+@keyframes slidein {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.drawer-title {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.drawer-x {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.drawer-item {
+  text-align: left;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+.drawer-item:hover {
+  background: var(--panel);
+}
+.drawer-item.active {
+  background: var(--panel);
+  border-color: var(--line);
+}
+.drawer-item.danger {
+  color: var(--red-soft);
+}
+.drawer-sep {
+  height: 1px;
+  background: var(--line);
+  margin: 8px 0;
+}
+.drawer-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  padding: 0 4px 2px;
+}
+.drawer .seg {
+  width: 100%;
+}
+.drawer .seg button {
+  flex: 1;
 }

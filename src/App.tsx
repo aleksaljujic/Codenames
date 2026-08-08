@@ -1,22 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { WORDS } from './data/words';
-import { buildGame, toCyrillic, type Game, type Role, type Team } from './lib';
+import { buildGame, spyCode, toCyrillic, type Game, type Role, type Team } from './lib';
 
 type Script = 'lat' | 'cyr';
-type View = 'home' | 'spy' | 'board';
+type View = 'home' | 'room' | 'spy' | 'board';
 type Outcome = 'red-win' | 'blue-win' | 'assassin' | null;
 
 const randomSeed = () => Math.floor(Math.random() * 0xffffffff);
 const teamName = (t: Team) => (t === 'red' ? 'CRVENI' : 'PLAVI');
 
-/* ---------------- URL <-> game (the seed is the room code) ---------------- */
+/* ---------------- URL <-> game (the seed is the room, driven by the URL) ---------------- */
 
 function parseHash(hash: string): { view: View; seed: string | null } {
-  const h = hash.replace(/^#/, ''); // e.g. "/spy?seed=abc"
+  const h = hash.replace(/^#/, ''); // e.g. "/board?seed=abc"
   const [path, query] = h.split('?');
   const seed = new URLSearchParams(query || '').get('seed');
-  const view: View = path.startsWith('/spy') ? 'spy' : path.startsWith('/board') ? 'board' : 'home';
+  const view: View = path.startsWith('/spy')
+    ? 'spy'
+    : path.startsWith('/board')
+      ? 'board'
+      : path.startsWith('/room')
+        ? 'room'
+        : 'home';
   return { view, seed: seed && seed.length ? seed : null };
 }
 
@@ -28,9 +34,9 @@ function nav(view: View, seed?: string) {
   window.location.hash = view === 'home' || !seed ? '#/' : gameHash(view, seed);
 }
 
-/** Absolute URL that opens the spymaster view for a given seed on any device. */
-function spyLink(seed: string): string {
-  return window.location.origin + window.location.pathname + gameHash('spy', seed);
+/** Absolute link that opens the players' board for a given seed on any device. */
+function boardLink(seed: string): string {
+  return window.location.origin + window.location.pathname + gameHash('board', seed);
 }
 
 function useHash() {
@@ -77,15 +83,24 @@ export default function App() {
   const { view, seed } = useHash();
   const [script, setScript] = useState<Script>('lat');
 
-  // The board is fully derived from the seed in the URL — so a scanned link
-  // reproduces the exact same board on a phone, with no backend.
+  // Board is fully derived from the seed in the URL — a scanned link reproduces
+  // the identical board on any device, with no backend.
   const game = useMemo<Game | null>(() => (seed ? buildGame(seed) : null), [seed]);
 
-  // Reveals are per-device (Option A: phones view the static map). Reset on new seed.
+  // Reveals are per-device (this device holds the live game). Reset on new seed.
   const [revealed, setRevealed] = useState<boolean[]>(() => Array(25).fill(false));
   useEffect(() => {
     setRevealed(Array(25).fill(false));
   }, [seed]);
+
+  // Which seed's spymaster map this device has unlocked (persists across refresh).
+  const [unlocked, setUnlocked] = useState<string | null>(() =>
+    sessionStorage.getItem('unlockedSeed'),
+  );
+  const unlock = (s: string) => {
+    sessionStorage.setItem('unlockedSeed', s);
+    setUnlocked(s);
+  };
 
   useWakeLock(game !== null && view !== 'home');
 
@@ -93,22 +108,127 @@ export default function App() {
 
   const disp = (w: string) => (script === 'cyr' ? toCyrillic(w) : w);
 
-  if (view === 'home' || !game) {
-    return <Home script={script} setScript={setScript} onStart={(s) => nav('spy', s)} />;
-  }
-
-  if (view === 'spy') {
-    return <SpyView game={game} disp={disp} script={script} setScript={setScript} />;
+  let content: React.ReactNode;
+  if (view === 'home' || !game || !seed) {
+    content = <Home script={script} setScript={setScript} onStart={(s) => nav('room', s)} />;
+  } else if (view === 'room') {
+    content = <Room game={game} onUnlockSpy={() => unlock(seed)} />;
+  } else if (view === 'spy') {
+    content =
+      unlocked === seed ? (
+        <SpyMap game={game} disp={disp} />
+      ) : (
+        <CodeGate seed={seed} onUnlock={() => unlock(seed)} />
+      );
+  } else {
+    content = (
+      <BoardView
+        game={game}
+        revealed={revealed}
+        setRevealed={setRevealed}
+        disp={disp}
+        onNew={() => nav('home')}
+      />
+    );
   }
 
   return (
-    <BoardView
-      game={game}
-      revealed={revealed}
-      setRevealed={setRevealed}
-      disp={disp}
-      onNew={() => nav('home')}
-    />
+    <>
+      {view !== 'home' && seed && (
+        <Menu
+          seed={seed}
+          current={view}
+          spymaster={unlocked === seed}
+          script={script}
+          setScript={setScript}
+        />
+      )}
+      {content}
+    </>
+  );
+}
+
+/* ---------------- Side menu (drawer) ---------------- */
+
+function Menu({
+  seed,
+  current,
+  spymaster,
+  script,
+  setScript,
+}: {
+  seed: string;
+  current: View;
+  spymaster: boolean;
+  script: Script;
+  setScript: (s: Script) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+  const go = (v: View) => {
+    setOpen(false);
+    nav(v, seed);
+  };
+  return (
+    <>
+      <button className="menu-btn" onClick={() => setOpen(true)} aria-label="Meni">
+        ☰
+      </button>
+
+      {open && (
+        <div className="drawer-backdrop" onClick={() => setOpen(false)}>
+          <nav className="drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="drawer-head">
+              <span className="drawer-title">KODNA IMENA</span>
+              <button className="drawer-x" onClick={() => setOpen(false)} aria-label="Zatvori">
+                ✕
+              </button>
+            </div>
+
+            <button
+              className={`drawer-item ${current === 'board' ? 'active' : ''}`}
+              onClick={() => go('board')}
+            >
+              🁢 Tabla
+            </button>
+            <button
+              className={`drawer-item ${current === 'spy' ? 'active' : ''}`}
+              onClick={() => go('spy')}
+            >
+              {spymaster ? '🗺 Špijunska mapa' : '🔒 Špijunska mapa'}
+            </button>
+            <button
+              className="drawer-item"
+              onClick={() => {
+                setOpen(false);
+                setShowQr(true);
+              }}
+            >
+              ⧉ Podeli tablu (QR)
+            </button>
+            {spymaster && (
+              <button
+                className={`drawer-item ${current === 'room' ? 'active' : ''}`}
+                onClick={() => go('room')}
+              >
+                # Špijunski kod / soba
+              </button>
+            )}
+
+            <div className="drawer-sep" />
+            <div className="drawer-label">Pismo</div>
+            <ScriptToggle script={script} setScript={setScript} />
+
+            <div className="drawer-sep" />
+            <button className="drawer-item danger" onClick={() => go('home')}>
+              ↻ Nova igra
+            </button>
+          </nav>
+        </div>
+      )}
+
+      {showQr && <BoardQrOverlay seed={seed} onClose={() => setShowQr(false)} />}
+    </>
   );
 }
 
@@ -152,26 +272,115 @@ function Home({
       </div>
 
       <button className="btn btn-primary big" onClick={start}>
-        Nova igra →
+        Napravi sobu →
       </button>
     </div>
   );
 }
 
-/* ---------------- Spymaster view ---------------- */
+/* ---------------- Room (share hub — shows the QR + spymaster code) ---------------- */
 
-function SpyView({
-  game,
-  disp,
-  script,
-  setScript,
-}: {
-  game: Game;
-  disp: (w: string) => string;
-  script: Script;
-  setScript: (s: Script) => void;
-}) {
-  const [showShare, setShowShare] = useState(false);
+function Room({ game, onUnlockSpy }: { game: Game; onUnlockSpy: () => void }) {
+  const seed = game.seedLabel;
+  const link = boardLink(seed);
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — QR still works */
+    }
+  };
+  return (
+    <div className="home room">
+      <div className="title">
+        <h1 className="roomtitle">Soba spremna</h1>
+        <p className="sub">Igrači skeniraju QR da otvore tablu.</p>
+      </div>
+
+      <div className="qr-wrap">
+        <QRCodeSVG value={link} size={216} level="M" marginSize={1} />
+      </div>
+
+      <div className="codebox">
+        <small>Špijunski kod</small>
+        <div className="bigcode">{spyCode(seed)}</div>
+        <span className="hint">Reci ga samo špijunima — njime otključavaju obojenu mapu.</span>
+      </div>
+
+      <div className="share-actions">
+        <button className="btn btn-primary big" onClick={() => nav('board', seed)}>
+          Otvori tablu
+        </button>
+        <button
+          className="btn big"
+          onClick={() => {
+            onUnlockSpy();
+            nav('spy', seed);
+          }}
+        >
+          Špijunska mapa
+        </button>
+        <button className="btn big" onClick={copy}>
+          {copied ? '✓ Kopirano' : 'Kopiraj link'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Spymaster code gate ---------------- */
+
+function CodeGate({ seed, onUnlock }: { seed: string; onUnlock: () => void }) {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState(false);
+  const submit = () => {
+    if (code === spyCode(seed)) onUnlock();
+    else setError(true);
+  };
+  return (
+    <div className="home">
+      <div className="title">
+        <h1 className="roomtitle">🔒 Špijunski prikaz</h1>
+        <p className="sub">Unesi špijunski kod da vidiš obojenu mapu.</p>
+      </div>
+
+      <div className="field">
+        <input
+          className="codeinput"
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value.replace(/\D/g, '').slice(0, 4));
+            setError(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') submit();
+          }}
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="••••"
+          autoFocus
+        />
+        {error && <span className="gate-err">Pogrešan kod, probaj ponovo.</span>}
+      </div>
+
+      <div className="share-actions">
+        <button className="btn btn-primary big" onClick={submit}>
+          Otključaj
+        </button>
+        <button className="btn big" onClick={() => nav('board', seed)}>
+          Na tablu
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Spymaster map ---------------- */
+
+function SpyMap({ game, disp }: { game: Game; disp: (w: string) => string }) {
   const other: Team = game.startingTeam === 'red' ? 'blue' : 'red';
   return (
     <div className="app">
@@ -184,14 +393,6 @@ function SpyView({
             <b className={other}>8</b>
           </span>
         </div>
-        <div className="spacer" />
-        <ScriptToggle script={script} setScript={setScript} />
-        <button className="btn" onClick={() => setShowShare(true)}>
-          ⧉ Podeli
-        </button>
-        <button className="btn btn-primary" onClick={() => nav('board', game.seedLabel)}>
-          Kreni →
-        </button>
       </header>
 
       <div className="board-area">
@@ -204,52 +405,11 @@ function SpyView({
           ))}
         </div>
       </div>
-
-      {showShare && <ShareOverlay seed={game.seedLabel} onClose={() => setShowShare(false)} />}
     </div>
   );
 }
 
-function ShareOverlay({ seed, onClose }: { seed: string; onClose: () => void }) {
-  const link = spyLink(seed);
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard blocked — user can still scan the QR */
-    }
-  };
-  return (
-    <div className="share-backdrop" onClick={onClose}>
-      <div className="share-card" onClick={(e) => e.stopPropagation()}>
-        <h2>Špijuni skeniraju kod</h2>
-        <div className="qr-wrap">
-          <QRCodeSVG value={link} size={232} level="M" marginSize={1} />
-        </div>
-        <div className="roomcode">
-          <small>Kod sobe</small>
-          {seed}
-        </div>
-        <p className="share-note">
-          Otvara istu mapu na svakom telefonu. Isti kod = ista tabla.
-        </p>
-        <div className="share-actions">
-          <button className="btn btn-dark" onClick={copy}>
-            {copied ? '✓ Kopirano' : 'Kopiraj link'}
-          </button>
-          <button className="btn" onClick={onClose}>
-            Zatvori
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ---------------- Board view ---------------- */
+/* ---------------- Board view (players) ---------------- */
 
 function BoardView({
   game,
@@ -310,13 +470,6 @@ function BoardView({
       <header className="topbar">
         <span className="pill red">CRVENI {Math.max(0, redRem)}</span>
         <span className="pill blue">PLAVI {Math.max(0, blueRem)}</span>
-        <div className="spacer" />
-        <button className="btn" onClick={() => nav('spy', game.seedLabel)}>
-          Prikaži mapu
-        </button>
-        <button className="btn" onClick={onNew}>
-          Nova igra
-        </button>
       </header>
 
       <div className="board-area">
@@ -334,6 +487,27 @@ function BoardView({
       </div>
 
       {outcome && <Overlay outcome={outcome} onNew={onNew} />}
+    </div>
+  );
+}
+
+/** Board QR only — no spymaster code, safe to show to players. */
+function BoardQrOverlay({ seed, onClose }: { seed: string; onClose: () => void }) {
+  const link = boardLink(seed);
+  return (
+    <div className="share-backdrop" onClick={onClose}>
+      <div className="share-card" onClick={(e) => e.stopPropagation()}>
+        <h2>Skeniraj da otvoriš tablu</h2>
+        <div className="qr-wrap">
+          <QRCodeSVG value={link} size={216} level="M" marginSize={1} />
+        </div>
+        <p className="share-note">
+          Otvara istu tablu na svakom telefonu. Špijunski kod je zaseban.
+        </p>
+        <button className="btn btn-dark" onClick={onClose}>
+          Zatvori
+        </button>
+      </div>
     </div>
   );
 }
@@ -369,7 +543,7 @@ function BoardCard({
   );
 }
 
-/* ---------------- Overlay ---------------- */
+/* ---------------- Game-over overlay ---------------- */
 
 function Overlay({ outcome, onNew }: { outcome: Exclude<Outcome, null>; onNew: () => void }) {
   const cfg = {
